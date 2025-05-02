@@ -21,19 +21,19 @@ const LandingPage = () => {
       {/* Stats Section */}
       <div className="py-12 bg-white">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="bg-black rounded-2xl p-8 shadow-xl">
+          <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
             <h2 className="text-2xl font-semibold mb-6 text-white text-center">Your Progress</h2>
             <div className="grid grid-cols-3 gap-8">
               <div className="text-center">
-                <p className="text-4xl font-bold text-pink-400">0</p>
+                <p className="text-4xl font-bold text-pink-600">0</p>
                 <p className="text-sm text-gray-300 mt-2">Total Points</p>
               </div>
-              <div className="text-center border-x border-gray-700">
-                <p className="text-4xl font-bold text-pink-400">0</p>
+              <div className="text-center border-x border-gray-600">
+                <p className="text-4xl font-bold text-pink-600">0</p>
                 <p className="text-sm text-gray-300 mt-2">Quizzes Completed</p>
               </div>
               <div className="text-center">
-                <p className="text-4xl font-bold text-pink-400">0</p>
+                <p className="text-4xl font-bold text-pink-600">0</p>
                 <p className="text-sm text-gray-300 mt-2">Games Played</p>
               </div>
             </div>
