@@ -44,78 +44,78 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black text-white">
       <Navbar />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
           <div className="flex items-center space-x-4">
             <Avatar>
               <AvatarImage src="/placeholder-avatar.jpg" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback className="bg-gray-800 text-green-500">JD</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold">John Doe</p>
-              <p className="text-sm text-gray-500">john.doe@example.com</p>
+              <p className="font-semibold text-white">John Doe</p>
+              <p className="text-sm text-gray-400">john.doe@example.com</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Total Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${userStats.balance.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Available balance</p>
+              <div className="text-2xl font-bold text-green-500">${userStats.balance.toLocaleString()}</div>
+              <p className="text-xs text-gray-400">Available balance</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Total Tokens</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userStats.totalTokens.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Token holdings</p>
+              <div className="text-2xl font-bold text-green-500">{userStats.totalTokens.toLocaleString()}</div>
+              <p className="text-xs text-gray-400">Token holdings</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Token Worth</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Token Worth</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${userStats.tokenWorth.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Current value</p>
+              <div className="text-2xl font-bold text-green-500">${userStats.tokenWorth.toLocaleString()}</div>
+              <p className="text-xs text-gray-400">Current value</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gray-900 border-gray-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Share Percentage</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-300">Share Percentage</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userStats.percentageShare}%</div>
-              <Progress value={userStats.percentageShare} className="mt-2" />
+              <div className="text-2xl font-bold text-green-500">{userStats.percentageShare}%</div>
+              <Progress value={userStats.percentageShare} className="mt-2 bg-gray-800" />
             </CardContent>
           </Card>
         </div>
 
-        <Card>
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle className="text-white">Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {userStats.recentTransactions.map((transaction, index) => (
-                <div key={index} className="flex items-center justify-between border-b pb-4">
+                <div key={index} className="flex items-center justify-between border-b border-gray-800 pb-4">
                   <div>
-                    <p className="font-medium">{transaction.type}</p>
-                    <p className="text-sm text-gray-500">{transaction.date}</p>
+                    <p className="font-medium text-white">{transaction.type}</p>
+                    <p className="text-sm text-gray-400">{transaction.date}</p>
                   </div>
-                  <div className={`font-semibold ${transaction.type === 'Received' ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`font-semibold ${transaction.type === 'Received' ? 'text-green-500' : 'text-red-500'}`}>
                     {transaction.type === 'Received' ? '+' : '-'}${transaction.amount}
                   </div>
                 </div>
