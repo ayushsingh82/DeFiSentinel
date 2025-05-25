@@ -14,7 +14,7 @@ const Navbar = () => (
   </nav>
 )
 
-export default function Home() {
+const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -122,3 +122,5 @@ export default function Home() {
     </div>
   )
 }
+
+export default LandingPage
