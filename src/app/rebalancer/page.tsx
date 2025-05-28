@@ -26,12 +26,14 @@ const RebalancerPage = () => {
   });
 
   const [suggestedAllocation, setSuggestedAllocation] = useState({
-    ETH: 40,
-    DOT: 30,
-    USDC: 30
+    ETH: 25,
+    DOT: 25,
+    USDC: 20,
+    AVAX: 15,
+    SOL: 15
   });
 
-  const [riskProfile, setRiskProfile] = useState('Low Risk');
+  const [riskProfile, setRiskProfile] = useState('Balanced Risk');
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant', message: string }[]>([]);
@@ -90,12 +92,23 @@ const RebalancerPage = () => {
     // Add user message to chat
     setChatHistory(prev => [...prev, { role: 'user', message: chatMessage }]);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = `Based on current market conditions, I recommend ${riskProfile} strategy with the suggested allocation. The market shows strong momentum in ${gainers[0].symbol} and potential reversal in ${losers[0].symbol}.`;
-      setChatHistory(prev => [...prev, { role: 'assistant', message: aiResponse }]);
-    }, 1000);
+    // Generate AI response based on the question
+    let aiResponse = '';
+    const question = chatMessage.toLowerCase();
 
+    if (question.includes('why') && question.includes('avax')) {
+      aiResponse = 'AVAX is suggested because of its strong ecosystem growth, high transaction throughput, and growing DeFi adoption. It provides diversification from ETH and DOT while maintaining good growth potential.';
+    } else if (question.includes('why') && question.includes('sol')) {
+      aiResponse = 'SOL is recommended due to its high performance, growing NFT ecosystem, and strong developer activity. It offers exposure to a different blockchain architecture and use cases.';
+    } else if (question.includes('why') && question.includes('reduce')) {
+      aiResponse = 'We\'re reducing ETH and DOT allocations to minimize concentration risk. While these are strong assets, diversifying across more ecosystems helps balance risk and potential returns.';
+    } else if (question.includes('risk')) {
+      aiResponse = 'This allocation aims for a balanced risk profile. USDC provides stability, while ETH and DOT offer established growth. AVAX and SOL add diversification with different risk/reward profiles.';
+    } else {
+      aiResponse = 'The suggested allocation is based on current market conditions, ecosystem growth, and risk management principles. Would you like to know more about any specific token or aspect of the strategy?';
+    }
+
+    setChatHistory(prev => [...prev, { role: 'assistant', message: aiResponse }]);
     setChatMessage('');
   };
 
@@ -104,6 +117,63 @@ const RebalancerPage = () => {
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-white mb-8">AI Portfolio Rebalancer</h1>
+
+        {/* AI Chatbot Section */}
+        <div className="bg-gray-900 rounded-2xl p-6 mb-8 border border-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Brain className="w-6 h-6 text-green-500" />
+              AI Assistant
+            </h2>
+            <button
+              onClick={() => setShowChatbot(!showChatbot)}
+              className="text-gray-400 hover:text-white transition"
+            >
+              {showChatbot ? 'Hide' : 'Show'} Chat
+            </button>
+          </div>
+          
+          {showChatbot && (
+            <div className="space-y-4">
+              <div className="h-64 overflow-y-auto p-4 bg-gray-800 rounded-xl space-y-4">
+                {chatHistory.map((chat, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-xl p-3 ${
+                        chat.role === 'user'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      {chat.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleChatSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  placeholder="Ask about the suggested allocation..."
+                  className="flex-1 px-4 py-2 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
+                >
+                  Send
+                </button>
+              </form>
+              <div className="text-sm text-gray-400">
+                Try asking: "Why add AVAX?" or "Why reduce ETH allocation?"
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Allocation Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -146,6 +216,13 @@ const RebalancerPage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-6 p-4 bg-gray-800 rounded-xl">
+              <h3 className="text-lg font-semibold text-white mb-2">Rebalancing Strategy</h3>
+              <p className="text-gray-400 text-sm">
+                Based on current market conditions, we suggest diversifying your portfolio by adding AVAX and SOL. 
+                This allocation aims to reduce risk while maintaining growth potential through exposure to different blockchain ecosystems.
+              </p>
             </div>
           </div>
         </div>
@@ -249,62 +326,6 @@ const RebalancerPage = () => {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* AI Chatbot */}
-        <div className="fixed bottom-8 right-8">
-          <button
-            onClick={() => setShowChatbot(!showChatbot)}
-            className="bg-blue-500 text-white p-4 rounded-full hover:bg-blue-600 transition shadow-lg"
-          >
-            <MessageSquare className="w-6 h-6" />
-          </button>
-
-          {showChatbot && (
-            <div className="absolute bottom-20 right-0 w-96 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl">
-              <div className="p-4 border-b border-gray-800">
-                <h3 className="text-white font-bold flex items-center gap-2">
-                  <Brain className="w-5 h-5" />
-                  AI Assistant
-                </h3>
-              </div>
-              <div className="h-96 overflow-y-auto p-4 space-y-4">
-                {chatHistory.map((chat, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-xl p-3 ${
-                        chat.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-800 text-gray-300'
-                      }`}
-                    >
-                      {chat.message}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-800">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Ask about market trends..."
-                    className="flex-1 px-4 py-2 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition"
-                  >
-                    Send
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
         </div>
       </div>
     </div>
