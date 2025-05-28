@@ -2,235 +2,372 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import { Search, ArrowRight, Brain, TrendingUp, TrendingDown, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Wallet, Coins, Percent, Brain, AlertTriangle, BarChart2, Search, Loader2 } from 'lucide-react';
+import { getMarketAnalysis } from '@/lib/aianalysis';
 
-interface Transaction {
-  chainIndex: string;
-  txHash: string;
-  txTime: string;
-  from: { address: string; amount: string }[];
-  to: { address: string; amount: string }[];
-  tokenContractAddress: string;
-  amount: string;
-  symbol: string;
-  txStatus: string;
+interface PortfolioData {
+  totalValue: number;
+  totalTokens: number;
+  portfolioPerformance: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+  holdings: {
+    name: string;
+    symbol: string;
+    amount: number;
+    value: number;
+    change24h: number;
+    allocation: number;
+  }[];
+  aiSuggestions: {
+    riskLevel: string;
+    recommendations: string[];
+    opportunities: string[];
+    warnings: string[];
+  };
 }
 
-interface AIAnalysis {
-  topTraders: {
-    address: string;
-    action: 'long' | 'short';
-    token: string;
-    confidence: number;
-  }[];
-  marketTrends: {
-    token: string;
-    trend: 'bullish' | 'bearish';
-    reason: string;
-  }[];
-}
-
-const PortfolioPage = () => {
+export default function PortfolioPage() {
   const [address, setAddress] = useState('');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
-  const [showAiAnalysis, setShowAiAnalysis] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPortfolio, setShowPortfolio] = useState(false);
+  const [marketAnalysis, setMarketAnalysis] = useState<any>(null);
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>({
+    totalValue: 16854.67,
+    totalTokens: 78,
+    portfolioPerformance: {
+      daily: 2.5,
+      weekly: 8.3,
+      monthly: 15.7
+    },
+    holdings: [
+      {
+        name: 'Polkadot',
+        symbol: 'DOT',
+        amount: 1000,
+        value: 7240,
+        change24h: 5.2,
+        allocation: 35
+      },
+      {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        amount: 2.5,
+        value: 6614.17,
+        change24h: 2.8,
+        allocation: 35
+      },
+      {
+        name: 'USDC',
+        symbol: 'USDC',
+        amount: 3000,
+        value: 3000,
+        change24h: 0,
+        allocation: 30
+      }
+    ],
+    aiSuggestions: {
+      riskLevel: 'Moderate',
+      recommendations: [
+        'Consider increasing ETH allocation to 40% for better growth potential',
+        'Diversify into AVAX and SOL for better risk management',
+        'Maintain USDC position for market opportunities'
+      ],
+      opportunities: [
+        'AVAX showing strong momentum, consider 15% allocation',
+        'SOL has strong technical indicators, potential for 15% allocation',
+        'DOT/ETH pair showing favorable correlation for hedging'
+      ],
+      warnings: [
+        'High concentration in DOT (35%) increases portfolio risk',
+        'Consider reducing USDC allocation to 20% for better returns',
+        'Monitor ETH volatility for potential rebalancing'
+      ]
+    }
+  });
 
-  const fetchTransactions = async () => {
+  const handleAddressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!address) return;
     
-    setLoading(true);
-    setError(null);
+    setIsLoading(true);
     try {
-      const timestamp = new Date().toISOString();
-      const response = await fetch(
-        `https://web3.okx.com/api/v5/dex/post-transaction/transactions-by-address?addresses=${address}&chains=1`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'OK-ACCESS-KEY': process.env.NEXT_PUBLIC_OKX_ACCESS_KEY || '',
-            'OK-ACCESS-SIGN': process.env.NEXT_PUBLIC_OKX_ACCESS_SIGN || '',
-            'OK-ACCESS-PASSPHRASE': process.env.NEXT_PUBLIC_OKX_PASSPHRASE || '',
-            'OK-ACCESS-TIMESTAMP': timestamp,
-          }
+      // Get market analysis
+      const analysis = getMarketAnalysis();
+      setMarketAnalysis(analysis);
+
+      // Update portfolio data with market insights
+      const updatedPortfolioData = {
+        ...portfolioData,
+        aiSuggestions: {
+          riskLevel: analysis.overallMarketSentiment,
+          recommendations: generateRecommendations(analysis),
+          opportunities: generateOpportunities(analysis),
+          warnings: generateWarnings(analysis)
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch transactions');
-      }
-
-      const data = await response.json();
-      if (data.data && data.data[0]?.transactionList) {
-        setTransactions(data.data[0].transactionList);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      };
+      setPortfolioData(updatedPortfolioData);
+      setShowPortfolio(true);
+    } catch (error) {
+      console.error('Error analyzing portfolio:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const getAiAnalysis = async () => {
-    setShowAiAnalysis(true);
-    // Simulated AI analysis - In production, this would call your AI service
-    setAiAnalysis({
-      topTraders: [
-        { address: '0x123...', action: 'long', token: 'ETH', confidence: 0.95 },
-        { address: '0x456...', action: 'short', token: 'DOT', confidence: 0.88 },
-        { address: '0x789...', action: 'long', token: 'USDC', confidence: 0.92 },
-      ],
-      marketTrends: [
-        { token: 'ETH', trend: 'bullish', reason: 'Strong institutional buying pressure' },
-        { token: 'DOT', trend: 'bearish', reason: 'Technical resistance at current levels' },
-        { token: 'USDC', trend: 'bullish', reason: 'Stable demand in DeFi protocols' },
-      ]
+  const generateRecommendations = (analysis: any): string[] => {
+    const recommendations: string[] = [];
+    Object.entries(analysis.tokens).forEach(([symbol, tokenData]: [string, any]) => {
+      if (tokenData.sentiment === 'Very Bullish' || tokenData.sentiment === 'Bullish') {
+        recommendations.push(`Consider increasing ${symbol} allocation due to strong bullish signals`);
+      }
+      if (tokenData.riskLevel === 'High') {
+        recommendations.push(`Monitor ${symbol} closely due to high volatility`);
+      }
     });
+    return recommendations;
+  };
+
+  const generateOpportunities = (analysis: any): string[] => {
+    const opportunities: string[] = [];
+    Object.entries(analysis.tokens).forEach(([symbol, tokenData]: [string, any]) => {
+      if (tokenData.technicalIndicators.trend.includes('Uptrend')) {
+        opportunities.push(`${symbol} showing strong momentum with ${tokenData.technicalIndicators.volume} volume`);
+      }
+    });
+    return opportunities;
+  };
+
+  const generateWarnings = (analysis: any): string[] => {
+    const warnings: string[] = [];
+    Object.entries(analysis.tokens).forEach(([symbol, tokenData]: [string, any]) => {
+      if (tokenData.sentiment === 'Very Bearish' || tokenData.sentiment === 'Bearish') {
+        warnings.push(`Exercise caution with ${symbol} due to bearish signals`);
+      }
+      if (tokenData.technicalIndicators.rsi > 70) {
+        warnings.push(`${symbol} showing overbought conditions`);
+      }
+    });
+    return warnings;
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black text-white">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-white mb-8">Portfolio Analysis</h1>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Portfolio Analysis</h1>
+          <p className="text-gray-400">Track your assets and get AI-powered insights</p>
+        </div>
 
         {/* Address Input Section */}
-        <div className="bg-gray-900 rounded-2xl p-8 mb-8 border border-gray-800">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Enter wallet address..."
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            <button
-              onClick={fetchTransactions}
-              className="px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition flex items-center gap-2"
-            >
-              <Search className="w-5 h-5" />
-              Analyze
-            </button>
-            <button
-              onClick={getAiAnalysis}
-              className="px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition flex items-center gap-2"
-            >
-              <Brain className="w-5 h-5" />
-              AI Insights
-            </button>
-          </div>
-        </div>
-
-        {/* AI Analysis Section */}
-        {showAiAnalysis && aiAnalysis && (
-          <div className="bg-gray-900 rounded-2xl p-8 mb-8 border border-gray-800">
-            <h2 className="text-2xl font-bold text-white mb-6">AI Market Analysis</h2>
-            
-            {/* Top Traders */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Top Traders Activity
-              </h3>
-              <div className="grid gap-4">
-                {aiAnalysis.topTraders.map((trader, index) => (
-                  <div key={index} className="bg-gray-800 rounded-xl p-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-gray-300">{trader.address}</p>
-                      <p className="text-sm text-gray-400">{trader.token}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        trader.action === 'long' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-                      }`}>
-                        {trader.action.toUpperCase()}
-                      </span>
-                      <span className="text-gray-400">{trader.confidence * 100}% confidence</span>
-                    </div>
-                  </div>
-                ))}
+        <Card className="bg-gray-900 border-gray-800 max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-white">Enter Wallet Address</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddressSubmit} className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Enter your wallet address..."
+                  className="flex-1 px-4 py-2 rounded-xl border border-gray-700 bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                  {isLoading ? 'Analyzing...' : 'Analyze'}
+                </button>
               </div>
-            </div>
+            </form>
+          </CardContent>
+        </Card>
 
-            {/* Market Trends */}
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Market Trends
-              </h3>
-              <div className="grid gap-4">
-                {aiAnalysis.marketTrends.map((trend, index) => (
-                  <div key={index} className="bg-gray-800 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-white font-medium">{trend.token}</span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        trend.trend === 'bullish' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-                      }`}>
-                        {trend.trend.toUpperCase()}
-                      </span>
+        {showPortfolio && marketAnalysis && (
+          <>
+            {/* AI Analysis */}
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-green-500" />
+                  AI Portfolio Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Market Sentiment */}
+                  <div className="bg-gray-800 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                      Market Sentiment
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="text-2xl font-bold text-green-500">
+                        {marketAnalysis.overallMarketSentiment}
+                      </div>
+                      {Object.entries(marketAnalysis.tokens).map(([symbol, data]: [string, any]) => (
+                        <div key={symbol} className="flex justify-between items-center">
+                          <span className="text-gray-300">{symbol}</span>
+                          <span className={`px-2 py-1 rounded-full text-sm ${
+                            data.sentiment.includes('Bullish') ? 'bg-green-500/20 text-green-500' :
+                            data.sentiment.includes('Bearish') ? 'bg-red-500/20 text-red-500' :
+                            'bg-yellow-500/20 text-yellow-500'
+                          }`}>
+                            {data.sentiment}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-gray-400 text-sm">{trend.reason}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Transactions Section */}
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          <h2 className="text-2xl font-bold text-white mb-6">Transaction History</h2>
-          {loading ? (
-            <div className="text-gray-400">Loading transactions...</div>
-          ) : error ? (
-            <div className="text-red-500">{error}</div>
-          ) : transactions.length === 0 ? (
-            <div className="text-gray-400">No transactions found</div>
-          ) : (
-            <div className="space-y-4">
-              {transactions.map((tx, index) => (
-                <div key={index} className="bg-gray-800 rounded-xl p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="text-gray-300">Transaction Hash: {tx.txHash.slice(0, 20)}...</p>
-                      <p className="text-sm text-gray-400">
-                        {new Date(parseInt(tx.txTime)).toLocaleString()}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      tx.txStatus === 'success' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-                    }`}>
-                      {tx.txStatus}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <p className="text-sm text-gray-400">From</p>
-                      <p className="text-gray-300">{tx.from[0]?.address.slice(0, 20)}...</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">To</p>
-                      <p className="text-gray-300">{tx.to[0]?.address.slice(0, 20)}...</p>
+                  {/* Technical Analysis */}
+                  <div className="bg-gray-800 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <BarChart2 className="w-4 h-4 text-blue-500" />
+                      Technical Analysis
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(marketAnalysis.tokens).map(([symbol, data]: [string, any]) => (
+                        <div key={symbol} className="space-y-2">
+                          <div className="font-medium text-white">{symbol}</div>
+                          <div className="text-sm text-gray-300">
+                            <div>RSI: {data.technicalIndicators.rsi}</div>
+                            <div>Trend: {data.technicalIndicators.trend}</div>
+                            <div>Volume: {data.technicalIndicators.volume}</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-700">
-                    <p className="text-gray-300">
-                      Amount: {tx.amount} {tx.symbol}
-                    </p>
+
+                  {/* Risk Analysis */}
+                  <div className="bg-gray-800 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                      Risk Analysis
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(marketAnalysis.tokens).map(([symbol, data]: [string, any]) => (
+                        <div key={symbol} className="space-y-2">
+                          <div className="font-medium text-white">{symbol}</div>
+                          <div className="text-sm text-gray-300">
+                            <div>Risk Level: {data.riskLevel}</div>
+                            <div>Confidence: {data.confidence}%</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+
+            {/* Portfolio Performance */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-300">Daily Performance</CardTitle>
+                  <Activity className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">+{portfolioData.portfolioPerformance.daily}%</div>
+                  <p className="text-xs text-gray-400">Last 24 hours</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-300">Weekly Performance</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">+{portfolioData.portfolioPerformance.weekly}%</div>
+                  <p className="text-xs text-gray-400">Last 7 days</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-300">Monthly Performance</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">+{portfolioData.portfolioPerformance.monthly}%</div>
+                  <p className="text-xs text-gray-400">Last 30 days</p>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </div>
+
+            {/* Main Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Total Portfolio Value</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-500">${portfolioData.totalValue.toLocaleString()}</div>
+                  <p className="text-sm text-gray-400">Across {portfolioData.totalTokens} tokens</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900 border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Risk Level</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-yellow-500">{portfolioData.aiSuggestions.riskLevel}</div>
+                  <Progress value={65} className="mt-2 bg-gray-800" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Holdings */}
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Current Holdings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {portfolioData.holdings.map((holding, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-800 rounded-xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold">{holding.symbol.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-white">{holding.name}</p>
+                          <p className="text-sm text-gray-400">{holding.amount} {holding.symbol}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white font-medium">${holding.value.toLocaleString()}</p>
+                        <p className={`text-sm ${holding.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {holding.change24h >= 0 ? '+' : ''}{holding.change24h}%
+                        </p>
+                        <p className="text-sm text-gray-400">{holding.allocation}% of portfolio</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
-};
-
-export default PortfolioPage; 
+} 
