@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Search, BarChart2, LineChart, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
 
 interface TokenAnalysis {
   name: string;
@@ -23,10 +24,27 @@ interface TokenAnalysis {
   whaleActivity: string;
 }
 
+interface MarketData {
+  chainIndex: string;
+  tokenContractAddress: string;
+}
+
+interface CandleData {
+  timestamp: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+}
+
 const MarketPage = () => {
   const [searchAddress, setSearchAddress] = useState('');
   const [tokenAnalysis, setTokenAnalysis] = useState<TokenAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [priceData, setPriceData] = useState<any>(null);
+  const [candleData, setCandleData] = useState<CandleData[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Demo data for token analysis
   const tokenAnalysisData: { [key: string]: TokenAnalysis } = {
@@ -103,7 +121,51 @@ const MarketPage = () => {
     }
   };
 
-  const handleAddressSearch = (e: React.FormEvent) => {
+  // Function to get market price
+  const getMarketPrice = async (marketData: MarketData) => {
+    try {
+      const response = await axios.post(
+        'https://web3.okx.com/api/v5/dex/market/price',
+        [marketData],
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'OK-ACCESS-KEY': process.env.NEXT_PUBLIC_OKX_API_KEY,
+            'OK-ACCESS-SIGN': process.env.NEXT_PUBLIC_OKX_API_SIGN,
+            'OK-ACCESS-PASSPHRASE': process.env.NEXT_PUBLIC_OKX_API_PASSPHRASE,
+            'OK-ACCESS-TIMESTAMP': new Date().toISOString(),
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching market price:', error);
+      throw error;
+    }
+  };
+
+  // Function to get candle data
+  const getCandleData = async (chainIndex: string, tokenContractAddress: string) => {
+    try {
+      const response = await axios.get(
+        `https://web3.okx.com/api/v5/dex/market/candles?chainIndex=${chainIndex}&tokenContractAddress=${tokenContractAddress}`,
+        {
+          headers: {
+            'OK-ACCESS-KEY': process.env.NEXT_PUBLIC_OKX_API_KEY,
+            'OK-ACCESS-SIGN': process.env.NEXT_PUBLIC_OKX_API_SIGN,
+            'OK-ACCESS-PASSPHRASE': process.env.NEXT_PUBLIC_OKX_API_PASSPHRASE,
+            'OK-ACCESS-TIMESTAMP': new Date().toISOString(),
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching candle data:', error);
+      throw error;
+    }
+  };
+
+  const handleAddressSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const analysis = tokenAnalysisData[searchAddress.toLowerCase()];
     if (analysis) {
@@ -129,6 +191,30 @@ const MarketPage = () => {
         return 'text-red-500';
       default:
         return 'text-gray-400';
+    }
+  };
+
+  // Example usage
+  const fetchMarketData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const marketData = {
+        chainIndex: "66",
+        tokenContractAddress: "0x382bb369d343125bfb2117af9c149795c6c65c50"
+      };
+
+      const [priceResponse, candleResponse] = await Promise.all([
+        getMarketPrice(marketData),
+        getCandleData(marketData.chainIndex, marketData.tokenContractAddress)
+      ]);
+
+      setPriceData(priceResponse);
+      setCandleData(candleResponse.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -249,6 +335,55 @@ const MarketPage = () => {
           {error && (
             <div className="bg-red-500/10 border border-red-500 rounded-xl p-4 text-red-500 mb-8">
               {error}
+            </div>
+          )}
+
+          <button
+            onClick={fetchMarketData}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Fetch Market Data'}
+          </button>
+
+          {priceData && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold mb-2">Price Data</h2>
+              <pre className="bg-gray-100 p-4 rounded overflow-auto">
+                {JSON.stringify(priceData, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {candleData.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold mb-2">Candle Data</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white border border-gray-300">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 border">Timestamp</th>
+                      <th className="px-4 py-2 border">Open</th>
+                      <th className="px-4 py-2 border">High</th>
+                      <th className="px-4 py-2 border">Low</th>
+                      <th className="px-4 py-2 border">Close</th>
+                      <th className="px-4 py-2 border">Volume</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {candleData.map((candle, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 border">{new Date(parseInt(candle.timestamp)).toLocaleString()}</td>
+                        <td className="px-4 py-2 border">{candle.open}</td>
+                        <td className="px-4 py-2 border">{candle.high}</td>
+                        <td className="px-4 py-2 border">{candle.low}</td>
+                        <td className="px-4 py-2 border">{candle.close}</td>
+                        <td className="px-4 py-2 border">{candle.volume}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

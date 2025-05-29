@@ -1,6 +1,6 @@
 # DeFiSentinel
 
-A Next.js-based DeFi trading platform focused on Solana ecosystem, providing AI-powered market analysis, portfolio management, and real-time trading insights. The platform specializes in Solana-based tokens and DeFi protocols, offering advanced trading tools and market intelligence.
+A Next.js-based trading analysis platform focused on Solana ecosystem, providing AI-powered market analysis, portfolio insights, and real-time trading intelligence. The platform specializes in analyzing Solana-based tokens and DeFi protocols, offering advanced market analysis tools and trading insights to help traders make informed decisions.
 
 ## Features
 
@@ -11,14 +11,19 @@ A Next.js-based DeFi trading platform focused on Solana ecosystem, providing AI-
 - Whale activity monitoring on Solana blockchain
 - Market trend predictions with AI confidence scoring
 - Solana DEX liquidity analysis
+- Historical candle data analysis for price levels
+- Real-time price monitoring with OKX DEX API
 
-### 2. Portfolio Management
+### 2. Portfolio Analysis
 - Real-time portfolio value tracking across Solana DeFi protocols
 - Token allocation visualization with protocol exposure
 - Performance metrics (daily, weekly, monthly)
-- AI-powered portfolio rebalancing suggestions
+- AI-powered portfolio analysis and insights
 - Risk level assessment for Solana DeFi positions
-- Yield farming opportunity tracking
+- Yield farming opportunity analysis
+- Total balance tracking with OKX DEX API
+- Specific token balance monitoring
+- Multi-chain portfolio analysis
 
 ### 3. AI Analysis Dashboard
 - Comprehensive Solana DeFi market overview
@@ -27,14 +32,20 @@ A Next.js-based DeFi trading platform focused on Solana ecosystem, providing AI-
 - Risk assessment and confidence scoring
 - Trading opportunity identification
 - Protocol health monitoring
+- Real-time price data integration
+- Historical performance analysis
+- Market depth visualization
 
-### 4. DeFi Portfolio Rebalancer
-- AI-driven portfolio optimization for Solana DeFi
-- Risk-adjusted allocation suggestions
+### 4. Portfolio Analysis Tools
+- AI-driven portfolio insights for Solana DeFi
+- Risk-adjusted allocation analysis
 - Market correlation analysis
-- Real-time rebalancing recommendations
+- Real-time market insights
 - Historical performance tracking
-- Yield optimization strategies
+- Yield optimization analysis
+- Index price monitoring
+- Multi-token analysis
+- Chain-specific market insights
 
 ## Technical Stack
 
@@ -45,14 +56,68 @@ A Next.js-based DeFi trading platform focused on Solana ecosystem, providing AI-
 - **Icons**: Lucide Icons
 - **Blockchain**: Solana Web3.js
 - **DeFi Integration**: Serum DEX, Raydium, Orca
+- **Data Visualization**: TradingView Charts
+- **API Integration**: OKX DEX API
 
 ## API Integrations
 
-### 1. Market Data APIs
-- **OKX API**
-  - Endpoint: `https://web3.okx.com/api/v5/dex/market/price`
-  - Used for real-time price data
-  - Solana token contract addresses
+### 1. OKX DEX APIs
+
+#### Portfolio Management
+```bash
+# Total Balance API
+GET https://web3.okx.com/api/v5/dex/balance/all-token-balances-by-address
+Parameters:
+- address: Wallet address
+- chains: Chain index
+
+# Specific Token Balance API
+POST https://web3.okx.com/api/v5/dex/balance/token-balances
+Body:
+{
+    "address": "wallet_address",
+    "tokenContractAddresses": [
+        {
+            "chainIndex": "chain_id",
+            "tokenContractAddress": "token_address"
+        }
+    ]
+}
+```
+
+#### Market Radar
+```bash
+# Market Price API
+POST https://web3.okx.com/api/v5/dex/market/price
+Body:
+{
+    "tokenContractAddresses": [
+        {
+            "chainIndex": "chain_id",
+            "tokenContractAddress": "token_address"
+        }
+    ]
+}
+
+# Historical Candles API
+GET https://web3.okx.com/api/v5/dex/market/historical-candles
+Parameters:
+- chainIndex: Chain ID
+- tokenContractAddress: Token address
+```
+
+#### Portfolio Rebalancer
+```bash
+# Index Price API
+POST https://web3.okx.com/api/v5/dex/index/current-price
+Body:
+[
+    {
+        "chainIndex": "chain_id",
+        "tokenContractAddress": "token_address"
+    }
+]
+```
 
 ### 2. Solana Blockchain APIs
 - **Solana RPC**
@@ -95,6 +160,8 @@ Add your API keys to `.env.local`:
 ```
 SOLANA_RPC_URL=your_rpc_url
 OKX_API_KEY=your_api_key
+OKX_API_SECRET=your_api_secret
+OKX_API_PASSPHRASE=your_passphrase
 SERUM_DEX_API_KEY=your_api_key
 ```
 
@@ -121,68 +188,10 @@ defi-sentinel/
 │   ├── lib/              # Utility functions
 │   │   ├── aianalysis.ts # AI analysis module
 │   │   ├── solana.ts     # Solana integration
-│   │   └── defi.ts       # DeFi protocol integration
+│   │   ├── defi.ts       # DeFi protocol integration
+│   │   └── api/          # API integration
+│   │       ├── okx.ts    # OKX DEX API
+│   │       └── serum.ts  # Serum DEX API
 │   └── styles/           # Global styles
 └── public/               # Static assets
 ```
-
-## AI Analysis Features
-
-### Market Sentiment Analysis
-- Real-time sentiment scoring for Solana tokens
-- Technical indicator analysis
-- Volume and price action analysis
-- Support/resistance level identification
-- DeFi protocol health monitoring
-
-### Portfolio Analysis
-- Risk level assessment for DeFi positions
-- Correlation analysis between Solana assets
-- Performance prediction
-- Rebalancing recommendations
-- Yield farming optimization
-
-### Technical Indicators
-- RSI (Relative Strength Index)
-- MACD (Moving Average Convergence Divergence)
-- Volume analysis
-- Trend identification
-- Support/Resistance levels
-- Liquidity depth analysis
-
-## DeFi Features
-
-### Protocol Integration
-- Serum DEX trading
-- Raydium liquidity pools
-- Orca swap integration
-- Yield farming tracking
-- Staking position management
-
-### Risk Management
-- Impermanent loss monitoring
-- Protocol risk assessment
-- Smart contract security scoring
-- Liquidity pool health tracking
-- APY/APR comparison
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Next.js team for the amazing framework
-- Solana Foundation for blockchain infrastructure
-- OKX for providing market data APIs
-- Serum DEX for trading infrastructure
-- Shadcn UI for the beautiful components
-- Lucide for the icon set

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, Wallet, Coins, Percent, Brain, AlertTriangle, BarChart2, Search, Loader2 } from 'lucide-react';
 import { getMarketAnalysis } from '@/lib/aianalysis';
+import axios from 'axios';
 
 interface PortfolioData {
   totalValue: number;
@@ -29,6 +30,16 @@ interface PortfolioData {
     opportunities: string[];
     warnings: string[];
   };
+}
+
+interface Transaction {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  timestamp: string;
+  status: string;
+  type: string;
 }
 
 export default function PortfolioPage() {
@@ -90,11 +101,39 @@ export default function PortfolioPage() {
     }
   });
 
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Function to get transaction history
+  const getTransactionHistory = async (address: string) => {
+    try {
+      const response = await axios.get(
+        `https://web3.okx.com/api/v5/dex/post-transaction/transactions-by-address?addresses=${address}&chains=1`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'OK-ACCESS-KEY': process.env.NEXT_PUBLIC_OKX_API_KEY,
+            'OK-ACCESS-SIGN': process.env.NEXT_PUBLIC_OKX_API_SIGN,
+            'OK-ACCESS-PASSPHRASE': process.env.NEXT_PUBLIC_OKX_API_PASSPHRASE,
+            'OK-ACCESS-TIMESTAMP': new Date().toISOString(),
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching transaction history:', error);
+      throw error;
+    }
+  };
+
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) return;
     
     setIsLoading(true);
+    setError(null);
+
     try {
       // Get market analysis
       const analysis = getMarketAnalysis();
@@ -112,8 +151,11 @@ export default function PortfolioPage() {
       };
       setPortfolioData(updatedPortfolioData);
       setShowPortfolio(true);
-    } catch (error) {
-      console.error('Error analyzing portfolio:', error);
+
+      const transactionData = await getTransactionHistory(address);
+      setTransactions(transactionData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -196,6 +238,12 @@ export default function PortfolioPage() {
             </form>
           </CardContent>
         </Card>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 text-red-500 mb-8">
+            {error}
+          </div>
+        )}
 
         {showPortfolio && marketAnalysis && (
           <>
@@ -366,6 +414,47 @@ export default function PortfolioPage() {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Transaction History Display */}
+        {transactions.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Transaction History</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-700">
+                    <th className="pb-4">Hash</th>
+                    <th className="pb-4">From</th>
+                    <th className="pb-4">To</th>
+                    <th className="pb-4">Value</th>
+                    <th className="pb-4">Timestamp</th>
+                    <th className="pb-4">Status</th>
+                    <th className="pb-4">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="text-white">
+                  {transactions.map((tx, index) => (
+                    <tr key={index} className="border-b border-gray-700">
+                      <td className="py-4 text-sm">{tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}</td>
+                      <td className="py-4 text-sm">{tx.from.slice(0, 8)}...{tx.from.slice(-6)}</td>
+                      <td className="py-4 text-sm">{tx.to.slice(0, 8)}...{tx.to.slice(-6)}</td>
+                      <td className="py-4 text-sm">{tx.value}</td>
+                      <td className="py-4 text-sm">{new Date(tx.timestamp).toLocaleString()}</td>
+                      <td className="py-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          tx.status === 'success' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </td>
+                      <td className="py-4 text-sm">{tx.type}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
     </div>
